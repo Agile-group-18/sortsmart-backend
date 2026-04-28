@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sortsmart-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sortsmart
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sortsmart}
+      POSTGRES_DB: sortsmart
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - sortsmart-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sortsmart"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sortsmart-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://sortsmart:${DB_PASSWORD:-sortsmart}@db:5432/sortsmart
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 10080
+      REFRESH_TOKEN_EXPIRE_DAYS: 90
+      ALGORITHM: HS256
+      MAIL_CONSOLE: "true"
+      FRONTEND_URL: https://sortsmart.kleopatra.pro
+      REFRESH_INTERVAL_HOURS: 168
+      MAX_NEARBY_LIMIT: 100
+      DEFAULT_NEARBY_LIMIT: 25
+      DEFAULT_RADIUS_KM: 10
+    volumes:
+      - ./alembic:/app/alembic
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sortsmart-net
+
+volumes:
+  db_data:
+
+networks:
+  sortsmart-net:
+    driver: bridge

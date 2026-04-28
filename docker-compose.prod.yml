@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sortsmart-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sortsmart
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: sortsmart
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - sortsmart-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sortsmart"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/agile-group-18/sortsmart-backend:latest
+    container_name: sortsmart-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://sortsmart:${DB_PASSWORD}@db:5432/sortsmart
+      SECRET_KEY: ${SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 10080
+      REFRESH_TOKEN_EXPIRE_DAYS: 90
+      ALGORITHM: HS256
+      MAIL_CONSOLE: ${MAIL_CONSOLE:-true}
+      FRONTEND_URL: ${FRONTEND_URL:-https://sortsmart.kleopatra.pro}
+      REFRESH_INTERVAL_HOURS: 168
+      MAX_NEARBY_LIMIT: 100
+      DEFAULT_NEARBY_LIMIT: 25
+      DEFAULT_RADIUS_KM: 10
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sortsmart-net
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: sortsmart-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+    depends_on:
+      - api
+    networks:
+      - sortsmart-net
+
+volumes:
+  db_data:
+
+networks:
+  sortsmart-net:
+    driver: bridge
