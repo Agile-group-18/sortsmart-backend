@@ -3,12 +3,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyo
 
 # Distribution / packaging
 build/
 dist/
 *.egg-info/
 *.egg
+wheels/
+sdist/
+MANIFEST
 
 # Testing / coverage
 htmlcov/
@@ -16,17 +20,37 @@ htmlcov/
 .coverage.*
 coverage/
 .pytest_cache/
+.tox/
 
 # Type checking
 .mypy_cache/
+.pyright/
 
 # Virtual environments
-.venv
+.venv/
+venv/
+env/
+ENV/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Secrets
+.env
+
+# Database 
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs 
+*.log
+logs/

@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-multipart
+sqlalchemy
+psycopg2-binary
+alembic
+python-jose[cryptography]
+pwdlib[argon2]
+httpx
+apscheduler
+pydantic
+pydantic-settings
+slowapi
+fastapi-mail
+gunicorn
+beautifulsoup4
+lxml
