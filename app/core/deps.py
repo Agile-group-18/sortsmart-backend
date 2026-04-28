@@ -24,7 +24,7 @@ def get_current_user(
     )
     try:
         payload = decode_access_token(token)
-        user_id: str = payload.get("sub")
+        user_id: str = payload.get("sub") # type: ignore
         if not user_id:
             raise exc
     except JWTError:
