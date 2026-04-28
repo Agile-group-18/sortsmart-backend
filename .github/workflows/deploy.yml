@@ -33,7 +33,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: |
+            ghcr.io/agile-group-18/sortsmart-backend:latest
+            ghcr.io/agile-group-18/sortsmart-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
