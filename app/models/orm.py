@@ -114,10 +114,15 @@ class StationWasteType(Base):
         String, ForeignKey("stations.id", ondelete="CASCADE"), primary_key=True
     )
     waste_type: Mapped[str] = mapped_column(String(100), primary_key=True)
+    image_url: Mapped[str | None] = mapped_column(String, nullable=True)
 
     station: Mapped["Station"] = relationship(back_populates="waste_types")
 
     __table_args__ = (Index("ix_swt_waste_type", "waste_type"),)
+    def __init__(self, station_id: str, waste_type: str, image_url: str | None = None):
+        self.station_id = station_id
+        self.waste_type = waste_type
+        self.image_url = image_url
 
 
 class StatusReport(Base):

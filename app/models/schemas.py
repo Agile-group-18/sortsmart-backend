@@ -76,6 +76,10 @@ class ProfileUpdateRequest(BaseModel):
         None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$"
     )
 
+class WasteTypeResponse(BaseModel):
+    waste_type: str
+    image_url: Optional[str] = None
+    model_config = {"from_attributes": True}
 
 class StationSummary(BaseModel):
     id: str
@@ -83,7 +87,7 @@ class StationSummary(BaseModel):
     latitude: float
     longitude: float
     distance_km: Optional[float] = None
-    waste_types: list[str] = []
+    waste_types: list[WasteTypeResponse] = []
     reported_status: StationStatus = StationStatus.unknown
     address: Optional[str] = None
 

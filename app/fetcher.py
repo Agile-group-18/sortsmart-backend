@@ -73,14 +73,18 @@ def _parse_waste_types_html(html: str, station_id: str) -> list[StationWasteType
     icon_list = soup.find("li", class_="icon-list")
     if not icon_list:
         return []
-    return [
-        StationWasteType(
-            station_id=station_id,
-            waste_type=tag.get_text(strip=True),
-        )
-        for tag in icon_list.find_all("strong")
-        if tag.get_text(strip=True)
-    ]
+    waste_types = []
+    for row in icon_list.find_all("li"):
+        image_tag = row.find("img")
+        name_tag = row.find("strong")
+        
+        if name_tag:
+            name = name_tag.get_text(strip=True)
+            image_url = None
+            if image_tag:
+                image_url = "https://www.sopor.nu" + image_tag.get("src")
+            waste_types.append(StationWasteType(station_id, name, image_url))
+    return waste_types
 
 
 async def _enrich_avx(
