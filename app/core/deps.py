@@ -19,12 +19,12 @@ def get_current_user(
 ) -> User:
     exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
         payload = decode_access_token(token)
-        user_id: str = payload.get("sub") # type: ignore
+        user_id: str = payload.get("sub")  # type: ignore
         if not user_id:
             raise exc
     except JWTError:

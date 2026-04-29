@@ -32,7 +32,7 @@ services:
       REFRESH_TOKEN_EXPIRE_DAYS: 90
       ALGORITHM: HS256
       MAIL_CONSOLE: "true"
-      FRONTEND_URL: https://sortsmart.kleopatra.pro
+      FRONTEND_URL: http://localhost:8000
       REFRESH_INTERVAL_HOURS: 168
       MAX_NEARBY_LIMIT: 100
       DEFAULT_NEARBY_LIMIT: 25

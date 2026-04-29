@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import SessionLocal
 from .fetcher import fetch_all
-from .models.orm import Station, StationWasteType, SyncMeta
+from .models.orm import Station, StationWasteType, SyncMeta, User
 
 settings = get_settings()
 logger = logging.getLogger("sortsmart.scheduler")
@@ -78,6 +78,24 @@ async def sync_now(db: Session | None = None) -> None:
         if owns_session:
             db.close()
 
+
+async def clear_disabled_accounts(db: Session | None = None) -> None:
+    """Permanently delete accounts that have been disabled for a long time. Pass an existing db session or None to create one."""
+    owns_session = db is None
+    if owns_session:
+        db = SessionLocal()
+
+    try:
+        deleted = db.query(User).filter(User.is_active == False).delete()
+        db.commit()
+        logger.info("Deleted %d disabled accounts", deleted)
+    except Exception as exc:
+        logger.error("Failed to clear accounts: %s", exc, exc_info=True)
+        db.rollback()
+    finally:
+        db.close()
+
+
 def get_next_run() -> datetime | None:
     return _next_run
 
@@ -89,6 +107,13 @@ def start() -> None:
         id="station_sync",
         replace_existing=True,
         next_run_time=datetime.now(timezone.utc),
+    )
+
+    scheduler.add_job(
+        clear_disabled_accounts,
+        trigger=IntervalTrigger(days=90),
+        id="clear_disabled_accounts",
+        replace_existing=True,
     )
     scheduler.start()
     logger.info(

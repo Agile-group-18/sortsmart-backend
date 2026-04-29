@@ -75,6 +75,7 @@ class ProfileUpdateRequest(BaseModel):
     username: Optional[str] = Field(
         None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$"
     )
+    email: Optional[EmailStr] = None
 
 
 class StationSummary(BaseModel):

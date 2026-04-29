@@ -5,6 +5,8 @@ from ..models.orm import User, StatusReport
 from ..models.schemas import ProfileResponse, ProfileUpdateRequest
 from ..core.deps import get_current_user
 
+from ..services import profile as svc
+
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
 
@@ -28,11 +30,11 @@ def get_profile(db: Session = Depends(get_db), user: User = Depends(get_current_
 
 
 @router.patch("", response_model=ProfileResponse)
-def update_profile(
+async def update_profile(
     body: ProfileUpdateRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
-):
+): 
     if body.username and body.username != user.username:
         if db.query(User).filter(User.username == body.username).first():
             raise HTTPException(400, "Username already taken")
@@ -41,14 +43,18 @@ def update_profile(
         user.display_name = body.display_name
     if body.avatar_url is not None:
         user.avatar_url = body.avatar_url
+    if body.email is not None:
+        await svc.update_email(db, user, body.email)
     db.commit()
     db.refresh(user)
     return _schema(user, db)
 
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
-def delete_profile(
+async def delete_profile(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    user.is_active = False
-    db.commit()
+    await svc.disable(db, user)
+    return {
+        "message": "Account disabled. If this was a mistake, please contact support or recreate your account with the same email."
+    }
