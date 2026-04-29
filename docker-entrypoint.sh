@@ -1,13 +1,15 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 echo "Waiting for PostgreSQL..."
-until pg_isready -h db -U sortsmart 2>/dev/null; do
+until nc -z db 5432; do
   sleep 1
 done
+sleep 1
 
+echo "PostgreSQL is ready!"
 echo "Running migrations..."
 alembic upgrade head
 
-echo "Starting app..."
+echo "Starting server..."
 exec "$@"
