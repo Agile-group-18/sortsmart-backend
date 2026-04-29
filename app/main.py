@@ -65,4 +65,4 @@ async def no_cache_private(request, call_next):
 
 @app.get("/health", tags=["Health"])
 def health():
-    return {"status": "ok","message": "Test", "service": settings.app_name}
+    return {"status": "ok", "service": settings.app_name}

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -11,6 +11,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from ..database import Base
 
 
@@ -34,10 +35,10 @@ class User(Base):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
     updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
     )
 
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
@@ -59,7 +60,7 @@ class RefreshToken(Base):
     token: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user: Mapped["User"] = relationship(back_populates="refresh_tokens")
 
@@ -75,7 +76,7 @@ class EmailToken(Base):
     purpose: Mapped[str] = mapped_column(String(20), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user: Mapped["User"] = relationship(back_populates="email_tokens")
 
@@ -85,14 +86,16 @@ class Station(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    external_id: Mapped[str | None] = mapped_column(String, nullable=False)
+    external_id: Mapped[str] = mapped_column(String, nullable=False)
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
     address: Mapped[str | None] = mapped_column(String, nullable=True)
-    municipality: Mapped[str | None] = mapped_column(String, nullable=False)
+    municipality: Mapped[str] = mapped_column(String, nullable=False)
     opening_hours: Mapped[str | None] = mapped_column(String, nullable=True)
     operator: Mapped[str | None] = mapped_column(String, nullable=True)
-    station_type: Mapped[str | None] = mapped_column(String(3), nullable=False)  # "avs" | "avc"
+    station_type: Mapped[str] = mapped_column(
+        String(3), nullable=False
+    )  # "avs" | "avc"
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     last_synced: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -119,10 +122,6 @@ class StationWasteType(Base):
     station: Mapped["Station"] = relationship(back_populates="waste_types")
 
     __table_args__ = (Index("ix_swt_waste_type", "waste_type"),)
-    def __init__(self, station_id: str, waste_type: str, image_url: str | None = None):
-        self.station_id = station_id
-        self.waste_type = waste_type
-        self.image_url = image_url
 
 
 class StatusReport(Base):
@@ -138,7 +137,7 @@ class StatusReport(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     reported_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     station: Mapped["Station"] = relationship(back_populates="reports")
