@@ -5,6 +5,8 @@ from ..models.orm import User, StatusReport
 from ..models.schemas import ProfileResponse, ProfileUpdateRequest
 from ..core.deps import get_current_user
 
+from ..services import profile as svc
+
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
 
@@ -47,8 +49,10 @@ def update_profile(
 
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
-def delete_profile(
+async def delete_profile(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    user.is_active = False
-    db.commit()
+    await svc.disable(db, user)
+    return {
+        "message": "Account disabled. If this was a mistake, please contact support or recreate your account with the same email."
+    }

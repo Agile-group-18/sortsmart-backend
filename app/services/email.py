@@ -55,3 +55,13 @@ async def send_reset_email(to: str, token: str) -> None:
         f"Reset your password (valid 15 min):\n{link}\n\n"
         "If you didn't request this, ignore this email.",
     )
+
+
+async def send_disabled_email(to: str) -> None:
+    await _send(
+        to,
+        f"[{settings.app_name}] Account disabled",
+        "Thank you for being with us. Your account has been disabled as per your request. If this was a mistake or you change your mind, please recreate your account with the same email to start using our services again.\n\n"
+        "As per our policy, we keep your data for 90 days in case you want to reactivate. After that, all your data will be permanently deleted. If you have any questions, feel free to contact our support."
+        "If you didn't request this, please contact support immediately.",
+    )
