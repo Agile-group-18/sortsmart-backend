@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..models.orm import Station, StationWasteType, StatusReport
-from ..models.schemas import StationDetail, StationStatus, StationSummary
+from ..models.schemas import StationDetail, StationStatus, StationSummary, WasteTypeResponse
 from ..config import get_settings
 
 settings = get_settings()
@@ -91,7 +91,7 @@ def get_nearby(
                     latitude=s.latitude,
                     longitude=s.longitude,
                     distance_km=round(dist, 3),
-                    waste_types=[wt.waste_type for wt in s.waste_types],
+                    waste_types=[WasteTypeResponse.model_validate(wt) for wt in s.waste_types],
                     reported_status=_latest_status(db, s.id),
                     address=s.address,
                 ),
@@ -112,7 +112,7 @@ def get_by_id(db: Session, station_id: str) -> StationDetail:
         name=s.name,
         latitude=s.latitude,
         longitude=s.longitude,
-        waste_types=[wt.waste_type for wt in s.waste_types],
+        waste_types=[WasteTypeResponse.model_validate(wt) for wt in s.waste_types],
         reported_status=_latest_status(db, s.id),
         address=s.address,
         municipality=s.municipality,

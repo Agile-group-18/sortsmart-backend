@@ -48,7 +48,13 @@ async def sync_now(db: Session | None = None) -> None:
                     StationWasteType.station_id == s.id
                 ).delete()
                 for wt in s.waste_types:
-                    db.add(StationWasteType(station_id=s.id, waste_type=wt.waste_type))
+                    db.add(
+                        StationWasteType(
+                            station_id=s.id,
+                            waste_type=wt.waste_type,
+                            image_url=wt.image_url,
+                        )
+                    )
             else:
                 db.add(s)
 

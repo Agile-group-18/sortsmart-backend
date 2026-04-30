@@ -76,10 +76,18 @@ def _parse_waste_types_html(html: str, station_id: str) -> list[StationWasteType
     return [
         StationWasteType(
             station_id=station_id,
-            waste_type=tag.get_text(strip=True),
+            waste_type=(
+                row.find("strong").get_text(strip=True) # type: ignore
+                if row.find("strong")
+                else "Unknown"
+            ),
+            image_url=(
+                f"https://www.sopor.nu{row.find('img').get('src')}" # type: ignore
+                if row.find("img")
+                else None
+            ),
         )
-        for tag in icon_list.find_all("strong")
-        if tag.get_text(strip=True)
+        for row in icon_list.find_all("li")
     ]
 
 
@@ -103,7 +111,9 @@ async def _enrich_avx(
                 },
             )
             resp.raise_for_status()
-            station.waste_types = _parse_waste_types_html(resp.text, station.id)
+            parsed = _parse_waste_types_html(resp.text, station.id)
+            if parsed:
+                station.waste_types = parsed
         except Exception as exc:
             logger.warning(
                 "Failed to enrich AVS %s (extId=%s): %s",
@@ -133,9 +143,7 @@ async def fetch_all() -> list[Station]:
         logger.info("Enriching AVS stations with waste types from sopor.nu...")
         semaphore = asyncio.Semaphore(CONCURRENCY)
         await asyncio.gather(
-            *[_enrich_avx(client, s, semaphore, 0) for s in avs_stations]
-        )
-        await asyncio.gather(
+            *[_enrich_avx(client, s, semaphore, 0) for s in avs_stations],
             *[_enrich_avx(client, s, semaphore, 1) for s in avc_stations]
         )
 
