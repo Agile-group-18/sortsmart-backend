@@ -35,6 +35,7 @@ app = FastAPI(
     version="1.0.0",
     description="Backend for the SortSmart recycling station app.",
     lifespan=lifespan,
+    redirect_slashes=False,  # /*/ -> /* avoiding issues with trailing slashes and rate limiting
 )
 
 app.state.limiter = limiter
