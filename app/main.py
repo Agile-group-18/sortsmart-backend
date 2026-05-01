@@ -8,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from .config import get_settings
 from .database import Base, engine
 from . import scheduler
-from .routers import auth, stations, profile, web
+from .routers import auth, stations, profile, web, items
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,6 +54,7 @@ app.include_router(web.router)
 app.include_router(auth.router, prefix=PREFIX)
 app.include_router(stations.router, prefix=PREFIX)
 app.include_router(profile.router, prefix=PREFIX)
+app.include_router(items.router, prefix=PREFIX)
 
 
 @app.middleware("http")
