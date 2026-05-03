@@ -92,7 +92,14 @@ async def clear_disabled_accounts(db: Session | None = None) -> None:
         db = SessionLocal()
 
     try:
-        deleted = db.query(User).filter(User.is_active == False).delete()
+        deleted = (
+            db.query(User)
+            .filter(
+                User.is_active == False,
+                User.updated_at < datetime.now(timezone.utc) - timedelta(days=90),
+            )
+            .delete()
+        )
         db.commit()
         logger.info("Deleted %d disabled accounts", deleted)
     except Exception as exc:
