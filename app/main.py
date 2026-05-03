@@ -22,7 +22,8 @@ async def lifespan(app: FastAPI):
     # Import models so SQLAlchemy registers them before create_all
     from .models import orm  # noqa: F401
 
-    Base.metadata.create_all(bind=engine)
+    # Managed by Alembic migrations, so we don't want to create tables automatically
+    # Base.metadata.create_all(bind=engine)
     scheduler.start()
     yield
     scheduler.stop()

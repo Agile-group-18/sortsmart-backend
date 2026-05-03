@@ -1,4 +1,5 @@
 from typing import Annotated, Optional
+from urllib import response
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -9,6 +10,8 @@ from ..models.schemas import (
     ReportRequest,
     ReportResponse,
     FilterMode,
+    StationView,
+    StationsResponse,
 )
 from ..models.orm import User
 from ..services import stations as svc
@@ -19,37 +22,44 @@ router = APIRouter(prefix="/stations", tags=["Stations"])
 settings = get_settings()
 
 
-@router.get("/categories", response_model=CategoryResponse)
+@router.get("/categories", response_model=list[CategoryResponse])
 def categories(response: Response, db: Session = Depends(get_db)):
     response.headers["Cache-Control"] = (
         f"public, max-age={settings.categories_cache_seconds}"
     )
-    cats = svc.get_categories(db)
-    return CategoryResponse(categories=list(cats), total_stations_per_category=cats)
+    return svc.get_categories(db)
 
 
-@router.get("", response_model=NearbyResponse)
-def nearby(
+@router.get("", response_model=NearbyResponse | StationsResponse)
+def get_stations(
     response: Response,
-    lat: Annotated[float, Query(ge=-90, le=90)],
-    lon: Annotated[float, Query(ge=-180, le=180)],
-    limit: Annotated[
-        int, Query(ge=1, le=settings.max_nearby_limit)
-    ] = settings.default_nearby_limit,
+    lat: Annotated[Optional[float], Query(ge=-90, le=90)] = None,
+    lon: Annotated[Optional[float], Query(ge=-180, le=180)] = None,
     radius_km: Annotated[float, Query(ge=0.1, le=500)] = settings.default_radius_km,
-    categories: Annotated[list[str], Query()] = [],
+    category_ids: Annotated[list[int], Query()] = [],
     filter_mode: FilterMode = FilterMode.any,
+    station_type: Optional[str] = None,
+    view: StationView = StationView.map,
     db: Session = Depends(get_db),
 ):
     response.headers["Cache-Control"] = (
         f"public, max-age={settings.nearby_cache_seconds}"
     )
-    stations = svc.get_nearby(
-        db, lat, lon, limit, radius_km, categories, filter_mode.value
+    stations = svc.get_stations(
+        db,
+        lat,
+        lon,
+        radius_km,
+        category_ids,
+        filter_mode.value,
+        station_type,
+        view.value,
     )
-    return NearbyResponse(
-        total=len(stations), stations=stations, query_lat=lat, query_lon=lon
-    )
+    if lat is not None and lon is not None:
+        return NearbyResponse(
+            total=len(stations), stations=stations, query_lat=lat, query_lon=lon
+        )
+    return StationsResponse(total=len(stations), stations=stations)
 
 
 @router.get("/{station_id}", response_model=StationDetail)
@@ -65,7 +75,7 @@ def report(
     current_user: User = Depends(get_verified_user),
 ):
     count = svc.add_report(
-        db, station_id, current_user.id, body.status.value, body.note
+        db, station_id, current_user.id, body.category_id, body.status.value, body.note
     )
     return ReportResponse(
         station_id=station_id,

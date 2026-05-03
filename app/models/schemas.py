@@ -3,6 +3,8 @@ from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.models.orm import Station
+
 
 class StationStatus(str, Enum):
     operational = "operational"
@@ -14,6 +16,11 @@ class StationStatus(str, Enum):
 class FilterMode(str, Enum):
     any = "any"
     all = "all"
+
+
+class StationView(str, Enum):
+    map = "map"
+    list = "list"
 
 
 class RegisterRequest(BaseModel):
@@ -77,43 +84,59 @@ class ProfileUpdateRequest(BaseModel):
     )
     email: Optional[EmailStr] = None
 
-class WasteTypeResponse(BaseModel):
-    waste_type: str
+
+class CategoryResponse(BaseModel):
+    id: int
+    name: str
     image_url: Optional[str] = None
     model_config = {"from_attributes": True}
 
-class StationSummary(BaseModel):
+
+class CategoryStatusResponse(BaseModel):
+    id: int
+    status: StationStatus = StationStatus.unknown
+
+
+class StationMapItem(BaseModel):
+    id: str
+    station_type: str
+    latitude: float
+    longitude: float
+    category_statuses: list[CategoryStatusResponse] = []
+
+
+class StationListItem(BaseModel):
     id: str
     name: str
     latitude: float
     longitude: float
-    distance_km: Optional[float] = None
-    waste_types: list[WasteTypeResponse] = []
-    reported_status: StationStatus = StationStatus.unknown
     address: Optional[str] = None
-
-
-class StationDetail(StationSummary):
-    municipality: Optional[str] = None
+    municipality: str
+    station_type: str
     opening_hours: Optional[str] = None
     operator: Optional[str] = None
+    distance_km: Optional[float] = None
+    categories: list[CategoryResponse] = []
     last_synced: Optional[datetime] = None
+
+
+class StationDetail(StationListItem):
     report_count: int = 0
+    category_statuses: list[CategoryStatusResponse] = []
 
 
-class NearbyResponse(BaseModel):
+class StationsResponse(BaseModel):
     total: int
-    stations: list[StationSummary]
+    stations: list[StationMapItem | StationListItem]
+
+
+class NearbyResponse(StationsResponse):
     query_lat: float
     query_lon: float
 
 
-class CategoryResponse(BaseModel):
-    categories: list[str]
-    total_stations_per_category: dict[str, int]
-
-
 class ReportRequest(BaseModel):
+    category_id: int
     status: StationStatus
     note: Optional[str] = Field(None, max_length=280)
 

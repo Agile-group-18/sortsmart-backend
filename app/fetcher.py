@@ -5,7 +5,7 @@ from typing import Any
 from bs4 import BeautifulSoup
 
 from .config import get_settings
-from .models.orm import Station, StationWasteType
+from .models.orm import Station, StationCategory, Category
 
 settings = get_settings()
 logger = logging.getLogger("sortsmart.fetcher")
@@ -33,7 +33,7 @@ def _parse_avs(raw: dict[str, Any]) -> Station | None:
             is_active=True,
             last_synced=datetime.now(timezone.utc),
         )
-        s.waste_types = []
+        s._raw_categories = []  # type: ignore temp attr. resolved by scheduler
         return s
     except (KeyError, TypeError, ValueError) as exc:
         logger.warning("Skipping AVS id=%s: %s", raw.get("id"), exc)
@@ -57,36 +57,31 @@ def _parse_avc(raw: dict[str, Any]) -> Station | None:
             last_synced=datetime.now(timezone.utc),
         )
         fractions: list[Any] = raw.get("fractions") or []
-        s.waste_types = [
-            StationWasteType(station_id=s.id, waste_type=str(f).strip())
-            for f in fractions
-            if f
-        ]
+        s._raw_categories = [{"name": str(f).strip(), "image_url": None} for f in fractions if f]  # type: ignore temp attr. resolved by scheduler
         return s
     except (KeyError, TypeError, ValueError) as exc:
         logger.warning("Skipping AVC id=%s: %s", raw.get("id"), exc)
         return None
 
 
-def _parse_waste_types_html(html: str, station_id: str) -> list[StationWasteType]:
+def _parse_waste_types_html(html: str, station_id: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     icon_list = soup.find("li", class_="icon-list")
     if not icon_list:
         return []
     return [
-        StationWasteType(
-            station_id=station_id,
-            waste_type=(
-                row.find("strong").get_text(strip=True) # type: ignore
+        {
+            "name": (
+                row.find("strong").get_text(strip=True)  # type: ignore
                 if row.find("strong")
                 else "Unknown"
             ),
-            image_url=(
-                f"https://www.sopor.nu{row.find('img').get('src')}" # type: ignore
+            "image_url": (
+                f"https://www.sopor.nu{row.find('img').get('src')}"  # type: ignore
                 if row.find("img")
                 else None
             ),
-        )
+        }
         for row in icon_list.find_all("li")
     ]
 
@@ -95,7 +90,7 @@ async def _enrich_avx(
     client: httpx.AsyncClient,
     station: Station,
     semaphore: asyncio.Semaphore,
-    type: int = 0,
+    station_type: int = 0,
 ) -> None:
 
     if not station.external_id or not station.municipality:
@@ -107,13 +102,13 @@ async def _enrich_avx(
                 params={
                     "externalId": station.external_id,
                     "municipalityCode": station.municipality,
-                    "type": type,
+                    "type": station_type,
                 },
             )
             resp.raise_for_status()
             parsed = _parse_waste_types_html(resp.text, station.id)
             if parsed:
-                station.waste_types = parsed
+                station._raw_categories = parsed  # type: ignore temp attr. resolved by scheduler
         except Exception as exc:
             logger.warning(
                 "Failed to enrich AVS %s (extId=%s): %s",
@@ -144,12 +139,12 @@ async def fetch_all() -> list[Station]:
         semaphore = asyncio.Semaphore(CONCURRENCY)
         await asyncio.gather(
             *[_enrich_avx(client, s, semaphore, 0) for s in avs_stations],
-            *[_enrich_avx(client, s, semaphore, 1) for s in avc_stations]
+            *[_enrich_avx(client, s, semaphore, 1) for s in avc_stations],
         )
 
-        enriched_avs = sum(1 for s in avs_stations if s.waste_types)
+        enriched_avs = sum(1 for s in avs_stations if s._raw_categories)  # type: ignore temp attr. resolved by scheduler
         logger.info("Enriched %d/%d AVS stations", enriched_avs, len(avs_stations))
-        enriched_avc = sum(1 for s in avc_stations if s.waste_types)
+        enriched_avc = sum(1 for s in avc_stations if s._raw_categories)  # type: ignore temp attr. resolved by scheduler
         logger.info("Enriched %d/%d AVC stations", enriched_avc, len(avc_stations))
 
     all_stations = avs_stations + avc_stations
