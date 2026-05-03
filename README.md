@@ -66,15 +66,6 @@ GET /api/v1/stations?lat=57.7089&lon=11.9746&radius_km=5&limit=25
 
 ```
 └── 📁sortsmart-backend
-    └── 📁.github
-        └── 📁workflows
-            ├── deploy.yml
-    └── 📁alembic
-        └── 📁versions
-            ├── .gitkeep
-            ├── 68fa1fd5906b_initial_schema.py
-        ├── env.py
-        ├── script.py.mako
     └── 📁app
         └── 📁core
             ├── __init__.py
@@ -159,8 +150,10 @@ See `.env.example` for the full list including SMTP configuration.
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feat/your-feature`
-3. If you changed any models, generate a migration: `docker compose exec api alembic revision --autogenerate -m "describe change"`
-4. Commit both the model change and the generated migration file
-5. Open a pull request against `main`
+3. If you changed any models,
+   1. spin up throwaway db container `docker compose up db -d`
+   2. generate a migration: `docker compose run --rm api alembic revision --autogenerate -m "describe change"`
+5. Commit both the model change and the generated migration file
+6. Open a pull request against `main`
 
 See [GETTING_STARTED.md]([./GETTING_STARTED.md](https://github.com/Agile-group-18/sortsmart-backend/wiki/Getting-Started)) for the full local development workflow.
