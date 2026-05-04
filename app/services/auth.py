@@ -23,17 +23,27 @@ def _by_username_or_email(db: Session, value: str) -> User | None:
 
 
 async def register(db: Session, data: RegisterRequest) -> None:
-    if db.query(User).filter(User.email == data.email).first():
-        raise HTTPException(400, "Email already registered")
-    if db.query(User).filter(User.username == data.username).first():
+    existing_user = db.query(User).filter(User.email == data.email).first()
+    if existing_user and existing_user.is_active:
+        raise HTTPException(400, "Email allready registred")
+    username_query = db.query(User).filter(User.username == data.username)
+    if existing_user:
+        username_query = username_query.filter(User.id != existing_user.id)
+    if username_query.first():
         raise HTTPException(400, "Username already taken")
-
-    user = User(
-        username=data.username,
-        email=data.email,
-        hashed_password=hash_password(data.password),
-    )
-    db.add(user)
+    if existing_user:
+        existing_user.username = data.username
+        existing_user.hashed_password = hash_password(data.password)
+        existing_user.is_active = True
+        existing_user.is_verified = False
+        user = existing_user
+    else:
+        user = User(
+            username=data.username,
+            email=data.email,
+            hashed_password=hash_password(data.password),
+        )
+        db.add(user)
     db.flush()
 
     et = EmailToken(
