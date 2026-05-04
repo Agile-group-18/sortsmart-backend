@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import SessionLocal
 from .fetcher import fetch_all
-from .models.orm import Station, StationWasteType, SyncMeta, User
+from .models.orm import Station, StationCategory, Category, SyncMeta, User
 
 settings = get_settings()
 logger = logging.getLogger("sortsmart.scheduler")
@@ -31,6 +31,23 @@ async def sync_now(db: Session | None = None) -> None:
 
         unique: dict[str, Station] = {s.id: s for s in stations}
 
+        all_raw: dict[str, str | None] = {}
+        for s in unique.values():
+            for c in getattr(s, "_raw_categories", []):
+                if c["name"] not in all_raw or (c["image_url"] and not all_raw[c["name"]]):
+                    all_raw[c["name"]] = c["image_url"]
+
+        name_to_id: dict[str, int] = {}
+        for name, image_url in all_raw.items():
+            cat = db.query(Category).filter_by(name=name).first()
+            if not cat:
+                cat = Category(name=name, image_url=image_url)
+                db.add(cat)
+                db.flush()
+            elif image_url and not cat.image_url:
+                cat.image_url = image_url
+            name_to_id[name] = cat.id
+
         for s in unique.values():
             existing = db.get(Station, s.id)
             if existing:
@@ -41,24 +58,20 @@ async def sync_now(db: Session | None = None) -> None:
                 existing.municipality = s.municipality
                 existing.opening_hours = s.opening_hours
                 existing.operator = s.operator
+                existing.external_id = s.external_id
+                existing.station_type = s.station_type
                 existing.is_active = True
                 existing.last_synced = s.last_synced
-                # Replace waste types
-                db.query(StationWasteType).filter(
-                    StationWasteType.station_id == s.id
-                ).delete()
-                for wt in s.waste_types:
-                    db.add(
-                        StationWasteType(
-                            station_id=s.id,
-                            waste_type=wt.waste_type,
-                            image_url=wt.image_url,
-                        )
-                    )
             else:
                 db.add(s)
+            db.flush()
 
-        # Soft-delete stations no longer in the API (preserves historical reports)
+            db.query(StationCategory).filter_by(station_id=s.id).delete()
+            for raw_cat in getattr(s, "_raw_categories", []):
+                cat_id = name_to_id.get(raw_cat["name"])
+                if cat_id:
+                    db.add(StationCategory(station_id=s.id, category_id=cat_id))
+
         live_ids = set(unique.keys())
         db.query(Station).filter(Station.id.notin_(live_ids)).update(
             {"is_active": False}
@@ -106,7 +119,8 @@ async def clear_disabled_accounts(db: Session | None = None) -> None:
         logger.error("Failed to clear accounts: %s", exc, exc_info=True)
         db.rollback()
     finally:
-        db.close()
+        if owns_session:
+            db.close()
 
 
 def get_next_run() -> datetime | None:
@@ -114,6 +128,7 @@ def get_next_run() -> datetime | None:
 
 
 def start() -> None:
+    """Start the scheduler and add jobs."""
     scheduler.add_job(
         sync_now,
         trigger=IntervalTrigger(hours=settings.refresh_interval_hours),
@@ -135,4 +150,5 @@ def start() -> None:
 
 
 def stop() -> None:
+    """Stop the scheduler and all running jobs."""
     scheduler.shutdown(wait=False)

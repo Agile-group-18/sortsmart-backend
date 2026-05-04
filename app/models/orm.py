@@ -99,7 +99,7 @@ class Station(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     last_synced: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    waste_types: Mapped[list["StationWasteType"]] = relationship(
+    station_categories: Mapped[list["StationCategory"]] = relationship(
         back_populates="station", cascade="all, delete-orphan"
     )
     reports: Mapped[list["StatusReport"]] = relationship(back_populates="station")
@@ -110,19 +110,30 @@ class Station(Base):
     )
 
 
-class StationWasteType(Base):
-    __tablename__ = "station_waste_types"
+class StationCategory(Base):
+    __tablename__ = "station_categories"
 
     station_id: Mapped[str] = mapped_column(
         String, ForeignKey("stations.id", ondelete="CASCADE"), primary_key=True
     )
-    waste_type: Mapped[str] = mapped_column(String(100), primary_key=True)
+    category_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("categories.id", ondelete="CASCADE"), primary_key=True
+    )
+    
+    category: Mapped["Category"] = relationship(back_populates="station_categories")
+    station: Mapped["Station"] = relationship(back_populates="station_categories")
+
+    __table_args__ = (Index("ix_swt_waste_type", "category_id"),)
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     image_url: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    station: Mapped["Station"] = relationship(back_populates="waste_types")
-
-    __table_args__ = (Index("ix_swt_waste_type", "waste_type"),)
-
+    station_categories: Mapped[list["StationCategory"]] = relationship(back_populates="category", cascade="all, delete-orphan")
+    reports: Mapped[list["StatusReport"]] = relationship(back_populates="category")
 
 class StatusReport(Base):
     __tablename__ = "status_reports"
@@ -134,16 +145,25 @@ class StatusReport(Base):
     user_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    category_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False)  # "full" | "ok" | "damaged"
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     reported_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     station: Mapped["Station"] = relationship(back_populates="reports")
+    category: Mapped["Category"] = relationship(back_populates="reports")
     user: Mapped["User | None"] = relationship(back_populates="reports")
 
-    __table_args__ = (Index("ix_sr_station_id", "station_id"),)
+    __table_args__ = (
+        Index("ix_sr_station_id", "station_id"),
+        Index("ix_sr_category_id", "category_id"),
+        # Prevent duplicate active reports per user+station+category
+        Index("ix_sr_unique_active", "station_id", "category_id", "user_id"),
+    )
 
 
 class SyncMeta(Base):
