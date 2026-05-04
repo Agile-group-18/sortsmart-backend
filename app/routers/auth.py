@@ -18,7 +18,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/hour")
+@limiter.limit("3/2minutes")
 async def register(
     request: Request, body: RegisterRequest, db: Session = Depends(get_db)
 ):
