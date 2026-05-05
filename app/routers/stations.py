@@ -1,5 +1,4 @@
 from typing import Annotated, Optional
-from urllib import response
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -24,9 +23,7 @@ settings = get_settings()
 
 @router.get("/categories", response_model=list[CategoryResponse])
 def categories(response: Response, db: Session = Depends(get_db)):
-    response.headers["Cache-Control"] = (
-        f"public, max-age={settings.categories_cache_seconds}"
-    )
+    response.headers["Cache-Control"] = settings.PUBLIC_CACHE
     return svc.get_categories(db)
 
 
@@ -42,9 +39,7 @@ def get_stations(
     view: StationView = StationView.map,
     db: Session = Depends(get_db),
 ):
-    response.headers["Cache-Control"] = (
-        f"public, max-age={settings.nearby_cache_seconds}"
-    )
+    response.headers["Cache-Control"] = settings.PUBLIC_CACHE
     stations = svc.get_stations(
         db,
         lat,
@@ -63,17 +58,20 @@ def get_stations(
 
 
 @router.get("/{station_id}", response_model=StationDetail)
-def detail(station_id: str, db: Session = Depends(get_db)):
+def detail(response: Response, station_id: str, db: Session = Depends(get_db)):
+    response.headers["Cache-Control"] = settings.PUBLIC_CACHE
     return svc.get_by_id(db, station_id)
 
 
 @router.post("/{station_id}/report", response_model=ReportResponse, status_code=201)
 def report(
+    response: Response,
     station_id: str,
     body: ReportRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_verified_user),
 ):
+    response.headers["Cache-Control"] = "no-store, private"
     count = svc.add_report(
         db, station_id, current_user.id, body.category_id, body.status.value, body.note
     )

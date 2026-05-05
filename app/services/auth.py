@@ -24,13 +24,17 @@ def _by_username_or_email(db: Session, value: str) -> User | None:
 
 async def register(db: Session, data: RegisterRequest) -> None:
     existing_user = db.query(User).filter(User.email == data.email).first()
+    
     if existing_user and existing_user.is_active:
-        raise HTTPException(400, "Email allready registred")
+        raise HTTPException(400, "Email already registred")
+    
     username_query = db.query(User).filter(User.username == data.username)
+    
     if existing_user:
         username_query = username_query.filter(User.id != existing_user.id)
     if username_query.first():
         raise HTTPException(400, "Username already taken")
+    
     if existing_user:
         existing_user.username = data.username
         existing_user.hashed_password = hash_password(data.password)

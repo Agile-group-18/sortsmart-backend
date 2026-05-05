@@ -38,9 +38,14 @@ class Settings(BaseSettings):
     max_nearby_limit: int = 200
     default_nearby_limit: int = 100
     default_radius_km: float = 50.0
-
-    categories_cache_seconds: int = 7 * 24 * 3600  # 1 week
-    nearby_cache_seconds: int = 0
+    
+    PUBLIC_CACHE = (
+        "public, "
+        "max-age=3600, "
+        "s-maxage=604800, "
+        "stale-while-revalidate=86400, "
+        "stale-if-error=7776000"
+    )
 
 
 @lru_cache
