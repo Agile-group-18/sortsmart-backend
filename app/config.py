@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     default_nearby_limit: int = 100
     default_radius_km: float = 50.0
     
-    PUBLIC_CACHE = (
+    PUBLIC_CACHE: str = (
         "public, "
         "max-age=3600, "
         "s-maxage=604800, "
