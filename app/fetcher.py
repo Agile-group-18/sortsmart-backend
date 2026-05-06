@@ -69,21 +69,22 @@ def _parse_waste_types_html(html: str, station_id: str) -> list[dict]:
     icon_list = soup.find("li", class_="icon-list")
     if not icon_list:
         return []
-    return [
-        {
-            "name": (
-                row.find("strong").get_text(strip=True)  # type: ignore
-                if row.find("strong")
-                else "Unknown"
-            ),
-            "image_url": (
-                f"https://www.sopor.nu{row.find('img').get('src')}"  # type: ignore
-                if row.find("img")
-                else None
-            ),
-        }
-        for row in icon_list.find_all("li")
-    ]
+    results = []
+    for row in icon_list.find_all("li"):
+        strong_tag = row.find("strong")
+        name = strong_tag.get_text(strip=True) if strong_tag else "Unknown"
+        
+        img_tag = row.find("img")
+        src = img_tag.get("src") if img_tag else None
+        image_url = None
+        if src:
+            image_url = f"https://www.sopor.nu{src}" if src.startswith('/') else src # type: ignore
+        
+        results.append({
+            "name": name,
+            "image_url": image_url,
+        })
+    return results
 
 
 async def _enrich_avx(

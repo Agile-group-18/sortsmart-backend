@@ -21,15 +21,16 @@ async def sync_now(db: Session | None = None) -> None:
     if owns_session:
         db = SessionLocal()
 
+    # This prevents it from resyncing everytime during testing
     meta = db.get(SyncMeta, 1)
-    if meta is not None:
+    if meta is not None and meta.last_sync is not None:
         last_sync = meta.last_sync
-        if last_sync and datetime.now(timezone.utc) - last_sync.astimezone(timezone.utc) < timedelta(
-            days=settings.refresh_interval_days
-        ):
+        if last_sync and datetime.now(timezone.utc) - last_sync.astimezone(
+            timezone.utc
+        ) < timedelta(minutes=30):
             logger.info(
-                "Last sync was less than %d days ago - skipping",
-                settings.refresh_interval_days,
+                "Last sync was less than %d minutes ago - skipping",
+                30,
             )
             return
     logger.debug(
@@ -61,10 +62,12 @@ async def sync_now(db: Session | None = None) -> None:
                 cat = Category(name=name, image_url=image_url)
                 db.add(cat)
                 db.flush()
-            elif image_url and not cat.image_url:
+            elif image_url and cat.image_url != image_url:
                 cat.image_url = image_url
+
             name_to_id[name] = cat.id
 
+        # Stations
         for s in unique.values():
             existing = db.get(Station, s.id)
             if existing:
@@ -125,7 +128,7 @@ async def clear_disabled_accounts(db: Session | None = None) -> None:
         deleted = (
             db.query(User)
             .filter(
-                User.is_active == False,
+                ~User.is_active,
                 User.updated_at < datetime.now(timezone.utc) - timedelta(days=90),
             )
             .delete()
