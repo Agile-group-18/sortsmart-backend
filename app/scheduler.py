@@ -21,6 +21,21 @@ async def sync_now(db: Session | None = None) -> None:
     if owns_session:
         db = SessionLocal()
 
+    meta = db.get(SyncMeta, 1)
+    if meta is not None:
+        last_sync = meta.last_sync
+        if last_sync and datetime.now(timezone.utc) - last_sync.astimezone(timezone.utc) < timedelta(
+            days=settings.refresh_interval_days
+        ):
+            logger.info(
+                "Last sync was less than %d days ago - skipping",
+                settings.refresh_interval_days,
+            )
+            return
+    logger.debug(
+        "Starting station sync - last sync was at %s",
+        meta.last_sync if meta else "never",
+    )
     try:
         stations = await fetch_all()
         if not stations:
@@ -34,7 +49,9 @@ async def sync_now(db: Session | None = None) -> None:
         all_raw: dict[str, str | None] = {}
         for s in unique.values():
             for c in getattr(s, "_raw_categories", []):
-                if c["name"] not in all_raw or (c["image_url"] and not all_raw[c["name"]]):
+                if c["name"] not in all_raw or (
+                    c["image_url"] and not all_raw[c["name"]]
+                ):
                     all_raw[c["name"]] = c["image_url"]
 
         name_to_id: dict[str, int] = {}
@@ -85,7 +102,7 @@ async def sync_now(db: Session | None = None) -> None:
 
         db.commit()
         _next_run = datetime.now(timezone.utc) + timedelta(
-            hours=settings.refresh_interval_hours
+            days=settings.refresh_interval_days
         )
         logger.info("Sync done - %d stations. Next run: %s", len(unique), _next_run)
 
@@ -131,7 +148,7 @@ def start() -> None:
     """Start the scheduler and add jobs."""
     scheduler.add_job(
         sync_now,
-        trigger=IntervalTrigger(hours=settings.refresh_interval_hours),
+        trigger=IntervalTrigger(days=settings.refresh_interval_days),
         id="station_sync",
         replace_existing=True,
         next_run_time=datetime.now(timezone.utc),
@@ -145,7 +162,7 @@ def start() -> None:
     )
     scheduler.start()
     logger.info(
-        "Scheduler started - syncing every %d hours", settings.refresh_interval_hours
+        "Scheduler started - syncing every %d days", settings.refresh_interval_days
     )
 
 

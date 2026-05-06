@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 10_080  # 7 days
     refresh_token_expire_days: int = 90
 
-    refresh_interval_hours: int = 168  # 7 days
+    refresh_interval_days: int = 7
 
     mail_console: bool = True
     mail_username: str = ""
