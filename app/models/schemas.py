@@ -146,3 +146,32 @@ class ReportResponse(BaseModel):
     status: StationStatus
     report_count: int
     message: str
+
+
+class ItemCategory(BaseModel):
+    id: Optional[int] = None
+    name: str
+    image_url: Optional[str] = None
+
+
+class ItemSearchResult(BaseModel):
+    slug: str
+    name: str
+    category: Optional[ItemCategory] = None
+    score: float
+
+
+class ItemSearchResponse(BaseModel):
+    total: int
+    results: list[ItemSearchResult]
+
+
+class ItemDetail(BaseModel):
+    slug: str
+    name: str
+    category: Optional[ItemCategory] = None
+    leave_at: Optional[str] = None
+    processing: Optional[str] = None
+    last_scraped: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
