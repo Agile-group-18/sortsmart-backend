@@ -148,7 +148,7 @@ def _build_map_item(s: Station, statuses: dict) -> StationMapItem:
         station_type=s.station_type,
         latitude=s.latitude,
         longitude=s.longitude,
-        category_statuses=statuses.get(s.id, []),
+        categories=statuses.get(s.id, []),
     )
 
 
@@ -249,20 +249,13 @@ def get_by_id(db: Session, station_id: str) -> StationDetail:
         station_type=s.station_type,
         opening_hours=s.opening_hours,
         operator=s.operator,
-        last_synced=s.last_synced,
-        categories=[
-            CategoryResponse(
-                id=sc.category.id,
-                name=sc.category.name,
-                image_url=sc.category.image_url,
-            )
-            for sc in s.station_categories
-        ],
+        categories=_category_statuses(db, s.id),
         report_count=db.query(StatusReport)
         .filter(StatusReport.station_id == s.id)
         .count(),
-        category_statuses=_category_statuses(db, s.id),
+        last_synced=s.last_synced,
     )
+
 
 
 def get_categories(db: Session) -> list[CategoryResponse]:

@@ -102,7 +102,7 @@ class StationMapItem(BaseModel):
     station_type: str
     latitude: float
     longitude: float
-    category_statuses: list[CategoryStatusResponse] = []
+    categories: list[CategoryStatusResponse] = []
 
 
 class StationListItem(BaseModel):
@@ -122,7 +122,7 @@ class StationListItem(BaseModel):
 
 class StationDetail(StationListItem):
     report_count: int = 0
-    category_statuses: list[CategoryStatusResponse] = []
+    categories: list[CategoryStatusResponse] = []
 
 
 class StationsResponse(BaseModel):
