@@ -38,7 +38,9 @@ class User(Base):
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
     updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
@@ -60,7 +62,9 @@ class RefreshToken(Base):
     token: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
 
     user: Mapped["User"] = relationship(back_populates="refresh_tokens")
 
@@ -76,7 +80,9 @@ class EmailToken(Base):
     purpose: Mapped[str] = mapped_column(String(20), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
 
     user: Mapped["User"] = relationship(back_populates="email_tokens")
 
@@ -119,21 +125,27 @@ class StationCategory(Base):
     category_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("categories.id", ondelete="CASCADE"), primary_key=True
     )
-    
+
     category: Mapped["Category"] = relationship(back_populates="station_categories")
     station: Mapped["Station"] = relationship(back_populates="station_categories")
 
     __table_args__ = (Index("ix_swt_waste_type", "category_id"),)
 
+
 class Category(Base):
     __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(
+        String(100), unique=True, nullable=False, index=True
+    )
     image_url: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    station_categories: Mapped[list["StationCategory"]] = relationship(back_populates="category", cascade="all, delete-orphan")
+    station_categories: Mapped[list["StationCategory"]] = relationship(
+        back_populates="category", cascade="all, delete-orphan"
+    )
     reports: Mapped[list["StatusReport"]] = relationship(back_populates="category")
+
 
 class StatusReport(Base):
     __tablename__ = "status_reports"
@@ -148,7 +160,9 @@ class StatusReport(Base):
     category_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False
     )
-    status: Mapped[str] = mapped_column(String(20), nullable=False)  # "full" | "ok" | "damaged"
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # "full" | "ok" | "damaged"
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     reported_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
@@ -163,6 +177,30 @@ class StatusReport(Base):
         Index("ix_sr_category_id", "category_id"),
         # Prevent duplicate active reports per user+station+category
         Index("ix_sr_unique_active", "station_id", "category_id", "user_id"),
+    )
+
+
+class Item(Base):
+    __tablename__ = "items"
+
+    slug: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    category_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
+    )
+    category_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    category_image_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    leave_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    processing: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_scraped: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index(
+            "ix_items_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
     )
 
 
