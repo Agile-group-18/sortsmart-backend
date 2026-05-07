@@ -157,7 +157,6 @@ class ItemCategory(BaseModel):
 class ItemSearchResult(BaseModel):
     slug: str
     name: str
-    category: Optional[ItemCategory] = None
     score: float
 
 
