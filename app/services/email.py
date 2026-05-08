@@ -4,7 +4,7 @@ from ..config import get_settings
 
 settings = get_settings()
 logger = logging.getLogger("sortsmart.email")
-
+resend.api_key = settings.resend_api_key
 
 async def _send(to: str, subject: str, body: str) -> None:
     if settings.mail_console:
@@ -15,26 +15,19 @@ async def _send(to: str, subject: str, body: str) -> None:
         logger.info("──────────────────────────────────────────────────")
         return
 
-    from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
-    from pydantic import NameEmail
 
-    conf = ConnectionConfig(
-        MAIL_USERNAME=settings.mail_username,
-        MAIL_PASSWORD=settings.mail_password,
-        MAIL_FROM=settings.mail_from,
-        MAIL_PORT=settings.mail_port,
-        MAIL_SERVER=settings.mail_server,
-        MAIL_STARTTLS=settings.mail_starttls,
-        MAIL_SSL_TLS=settings.mail_ssl_tls,
-        USE_CREDENTIALS=True,
-    )
-    msg = MessageSchema(
-        subject=subject,
-        recipients=[NameEmail(name=to, email=to)],
-        body=body,
-        subtype=MessageType.plain,
-    )
-    await FastMail(conf).send_message(msg)
+    try:
+        resend.Emails.send({
+            "from": f"{settings.app_name} <{settings.mail_from}>",
+            "to": [to],
+            "subject": subject,
+            "text": body,
+            "html": f"<p>{body}<p>"
+        })
+        logger.info("Email sent succesfully to %s",to)
+    except Exception as e:
+        logger.error("Failed to send email via Resend %s",e)
+        
 
 
 async def send_verification_email(to: str, token: str) -> None:

@@ -24,9 +24,9 @@ class Settings(BaseSettings):
 
     refresh_interval_days: int = 7
 
-    mail_console: bool = True
+    mail_console: bool = False
     resend_api_key: str = ""
-    mail_username: str = "re_feoHxYfM_GyPtLzWr5pvBJ8aziDpdwvyX"
+    mail_username: str = ""
     mail_password: SecretStr = SecretStr("")
     mail_from: str = "noreply@sortsmart.kleopatra.pro"
     mail_port: int = 587
