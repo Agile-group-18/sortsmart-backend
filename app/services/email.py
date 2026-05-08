@@ -21,8 +21,8 @@ async def _send(to: str, subject: str, body: str) -> None:
             "from": f"{settings.app_name} <{settings.mail_from}>",
             "to": [to],
             "subject": subject,
-            "text": body,
-            "html": f"<p>{body}<p>"
+            "html": body,
+            
         })
         logger.info("Email sent succesfully to %s",to)
     except Exception as e:
