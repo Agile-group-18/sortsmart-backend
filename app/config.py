@@ -24,10 +24,11 @@ class Settings(BaseSettings):
 
     refresh_interval_days: int = 7
 
-    mail_console: bool = True
+    mail_console: bool = False
+    resend_api_key: str = ""
     mail_username: str = ""
     mail_password: SecretStr = SecretStr("")
-    mail_from: str = "noreply@sortsmart.klepoatra.pro"
+    mail_from: str = "noreply@sortsmart.kleopatra.pro"
     mail_port: int = 587
     mail_server: str = (
         "smtp.gmail.com"  # Using Gmail as an example; replace with your SMTP server
