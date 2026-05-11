@@ -129,7 +129,7 @@ async def sync_items(db: Session | None = None) -> None:
         for item in items:
             detail: dict = getattr(item, "_raw_detail", None)  # type: ignore
 
-            existing = db.get(Item, item.slug)
+            existing = db.query(Item).filter(Item.slug == item.slug).first()
             if existing:
                 existing.name = item.name
                 existing.last_scraped = item.last_scraped
