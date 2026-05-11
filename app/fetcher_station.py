@@ -64,7 +64,7 @@ def _parse_avc(raw: dict[str, Any]) -> Station | None:
         return None
 
 
-def _parse_waste_types_html(html: str, station_id: str) -> list[dict]:
+def _parse_waste_types_html(html: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     icon_list = soup.find("li", class_="icon-list")
     if not icon_list:
@@ -107,7 +107,7 @@ async def _enrich_avx(
                 },
             )
             resp.raise_for_status()
-            parsed = _parse_waste_types_html(resp.text, station.id)
+            parsed = _parse_waste_types_html(resp.text)
             if parsed:
                 station._raw_categories = parsed  # type: ignore temp attr. resolved by scheduler
         except Exception as exc:

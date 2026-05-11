@@ -42,7 +42,6 @@ def search_items(db: Session, q: str) -> ItemSearchResponse:
             ItemSearchResult(
                 slug=item.slug,
                 name=item.name,
-                category=_resolve_category(db, item),
                 score=round(score, 3),
             )
             for item, score in results

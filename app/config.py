@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 10_080  # 7 days
     refresh_token_expire_days: int = 90
 
-    refresh_interval_days: int = 7
+    refresh_interval_days: int = 30 # data doesn't change!
 
     mail_console: bool = False
     resend_api_key: str = ""
