@@ -49,7 +49,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/forgot-password")
-@limiter.limit("3/hour")
+@limiter.limit("3/2 minutes")
 async def forgot_password(
     request: Request, body: ForgotPasswordRequest, db: Session = Depends(get_db)
 ):
