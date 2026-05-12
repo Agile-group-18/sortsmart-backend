@@ -46,6 +46,7 @@ async def register(db: Session, data: RegisterRequest) -> None:
             username=data.username,
             email=data.email,
             hashed_password=hash_password(data.password),
+            is_verified = False
         )
         db.add(user)
     db.flush()
