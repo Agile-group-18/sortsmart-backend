@@ -47,7 +47,6 @@ def get_all_items(db: Session) -> list[ItemDetail]:
     ]
 
 def search_items(db: Session, q: str) -> ItemSearchResponse:
-    # Use lowercase similarity search so Swedish characters and casing are handled more consistently.
     query = q.lower()
 
     results = (
@@ -63,9 +62,6 @@ def search_items(db: Session, q: str) -> ItemSearchResponse:
             ItemSearchResult(
                 slug=item.slug,
                 name=item.name,
-                category=_resolve_category(db, item),
-                leave_at=item.leave_at,
-                processing=item.processing,
                 score=round(score, 3),
             )
             for item, score in results

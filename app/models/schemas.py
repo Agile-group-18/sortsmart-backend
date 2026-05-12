@@ -146,9 +146,6 @@ class ItemCategory(BaseModel):
 class ItemSearchResult(BaseModel):
     slug: str
     name: str
-    category: Optional[ItemCategory] = None
-    leave_at: Optional[str] = None
-    processing: Optional[str] = None
     score: float
 
 
@@ -166,3 +163,13 @@ class ItemDetail(BaseModel):
     last_scraped: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+    # TODO: enforce password strenght requirements?
+    # @field_validator("password")
+    # @classmethod
+    # def password_strength(cls, v: str) -> str:
+    #     if not any(c.isupper() for c in v):
+    #         raise ValueError("Password must contain at least one uppercase letter")
+    #     if not any(c.isdigit() for c in v):
+    #         raise ValueError("Password must contain at least one digit")
+    #     return v
