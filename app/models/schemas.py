@@ -1,9 +1,8 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.models.orm import Station
+from pydantic import BaseModel, EmailStr, Field
 
 
 class StationStatus(str, Enum):
@@ -27,16 +26,6 @@ class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
-
-    # TODO: enforce password strenght requirements?
-    # @field_validator("password")
-    # @classmethod
-    # def password_strength(cls, v: str) -> str:
-    #     if not any(c.isupper() for c in v):
-    #         raise ValueError("Password must contain at least one uppercase letter")
-    #     if not any(c.isdigit() for c in v):
-    #         raise ValueError("Password must contain at least one digit")
-    #     return v
 
 
 class LoginRequest(BaseModel):
@@ -174,3 +163,13 @@ class ItemDetail(BaseModel):
     last_scraped: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+    # TODO: enforce password strenght requirements?
+    # @field_validator("password")
+    # @classmethod
+    # def password_strength(cls, v: str) -> str:
+    #     if not any(c.isupper() for c in v):
+    #         raise ValueError("Password must contain at least one uppercase letter")
+    #     if not any(c.isdigit() for c in v):
+    #         raise ValueError("Password must contain at least one digit")
+    #     return v
