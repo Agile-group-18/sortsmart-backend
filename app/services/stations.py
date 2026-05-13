@@ -44,21 +44,28 @@ def _category_statuses(db: Session, station_id: str) -> list[CategoryStatusRespo
         .filter(StationCategory.station_id == station_id)
         .all()
     )
+
+    problem_cats = (
+        db.query(StatusReport.category_id)
+        .filter(
+            StatusReport.station_id == station_id,
+            StatusReport.status.in_(["full", "not_working"])
+        )
+        .group_by(StatusReport.category_id)
+        .having(func.count(StatusReport.id) >= 3)
+        .all()
+    )
+    
+    problem_cat_ids = {row[0] for row in problem_cats}
+
     result = []
     for (cat_id,) in cats:
-        row = (
-            db.query(StatusReport.status)
-            .filter(
-                StatusReport.station_id == station_id,
-                StatusReport.category_id == cat_id,
-            )
-            .order_by(StatusReport.reported_at.desc())
-            .first()
-        )
+        status = StationStatus.full if cat_id in problem_cat_ids else StationStatus.operational
+        
         result.append(
             CategoryStatusResponse(
                 id=cat_id,
-                status=StationStatus(row[0]) if row else StationStatus.unknown,
+                status=status,
             )
         )
     return result
@@ -70,47 +77,34 @@ def _bulk_category_statuses(
     if not station_ids:
         return {}
 
-    # Latest status per (station_id, category_id) in one query
-    subq = (
-        db.query(
-            StatusReport.station_id,
-            StatusReport.category_id,
-            func.max(StatusReport.reported_at).label("latest"),
+    problem_pairs = (
+        db.query(StatusReport.station_id, StatusReport.category_id)
+        .filter(
+            StatusReport.station_id.in_(station_ids),
+            StatusReport.status.in_(["full", "not_working"])
         )
-        .filter(StatusReport.station_id.in_(station_ids))
         .group_by(StatusReport.station_id, StatusReport.category_id)
-        .subquery()
-    )
-    rows = (
-        db.query(StatusReport.station_id, StatusReport.category_id, StatusReport.status)
-        .join(
-            subq,
-            (StatusReport.station_id == subq.c.station_id)
-            & (StatusReport.category_id == subq.c.category_id)
-            & (StatusReport.reported_at == subq.c.latest),
-        )
+        .having(func.count(StatusReport.id) >= 3)
         .all()
     )
 
-    # Build a map: station_id → list of CategoryStatusResponse
-    status_map: dict[str, dict[int, str]] = {}
-    for station_id, category_id, status in rows:
-        status_map.setdefault(station_id, {})[category_id] = status
+    problem_set = {(row[0], row[1]) for row in problem_pairs}
 
-    # Fill in unknowns from StationCategory
     sc_rows = (
         db.query(StationCategory.station_id, StationCategory.category_id)
         .filter(StationCategory.station_id.in_(station_ids))
         .all()
     )
+
     result: dict[str, list[CategoryStatusResponse]] = {}
     for station_id, category_id in sc_rows:
+        is_problem = (station_id, category_id) in problem_set
+        status = StationStatus.full if is_problem else StationStatus.operational
+
         result.setdefault(station_id, []).append(
             CategoryStatusResponse(
                 id=category_id,
-                status=StationStatus(
-                    status_map.get(station_id, {}).get(category_id, "unknown")
-                ),
+                status=status,
             )
         )
     return result
