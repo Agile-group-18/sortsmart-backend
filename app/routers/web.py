@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from ..database import get_db
@@ -65,4 +65,22 @@ def reset_password_web(token: str):
         "Reset your password",
         "Open SortSmart to set your new password, or click your reset link again from the app.",
         True,
+    )
+
+
+@router.get("/.well-known/assetlinks.json", include_in_schema=False)
+async def assetlinks():
+    return JSONResponse(
+        content=[
+            {
+                "relation": ["delegate_permission/common.handle_all_urls"],
+                "target": {
+                    "namespace": "android_app",
+                    "package_name": "org.grupp18.sortsmart",
+                    "sha256_cert_fingerprints": [
+                        "09:EC:F4:C7:0F:8E:B8:C0:8C:41:79:02:6D:D1:C1:8A:B4:69:F3:B9:5F:D1:B7:A4:EA:25:B5:2C:1B:02:14:24"
+                    ],
+                },
+            }
+        ]
     )
