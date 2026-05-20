@@ -5,10 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
 from .config import get_settings
-from .database import Base, engine
+from .database import Base
 from . import scheduler
-from .routers import auth, stations, profile, web, items
+from .routers import auth, stations, profile, web, items, tips
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +57,7 @@ app.include_router(auth.router, prefix=PREFIX)
 app.include_router(stations.router, prefix=PREFIX)
 app.include_router(profile.router, prefix=PREFIX)
 app.include_router(items.router, prefix=PREFIX)
+app.include_router(tips.router, prefix=PREFIX)
 
 
 @app.middleware("http")

@@ -136,14 +136,19 @@ def _build_list_item(
     )
 
 
-def _build_map_item(s: Station, statuses: dict) -> StationMapItem:
-    return StationMapItem(
+def _build_map_item(s: Station, statuses: dict, distance_km: Optional[float] = None) -> StationMapItem:
+    stationMap = StationMapItem(
         id=s.id,
         station_type=s.station_type,
         latitude=s.latitude,
         longitude=s.longitude,
-        categories=statuses.get(s.id, []),
+        categories=statuses.get(s.id, [])
     )
+    
+    if distance_km is not None:
+        stationMap.distance_km = distance_km
+        
+    return stationMap
 
 
 def _base_query(db: Session, category_ids: list[int], filter_mode: str):
@@ -210,7 +215,7 @@ def get_stations(
         if view == "map":
             # keep statuses only when needed
             statuses = _bulk_category_statuses(db, station_ids)
-            return [_build_map_item(s, statuses) for _, s in results]
+            return [_build_map_item(s, statuses, round(dist, 3)) for dist, s in results]
         return [_build_list_item(db, s, round(dist, 3)) for dist, s in results]
 
     if view == "list":

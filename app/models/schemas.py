@@ -92,6 +92,8 @@ class StationMapItem(BaseModel):
     latitude: float
     longitude: float
     categories: list[CategoryStatusResponse] = []
+    distance_km: Optional[float] = None
+
 
 
 class StationListItem(BaseModel):
