@@ -274,6 +274,15 @@ def add_report(
         raise HTTPException(404, f"Station '{station_id}' not found")
     if not db.get(Category, category_id):
         raise HTTPException(404, f"Category '{category_id}' not found")
+    
+    existing_report = (db.query(StatusReport).filter(
+        StatusReport.station_id == station_id,
+        StatusReport.user_id == user_id,
+        StatusReport.category_id == category_id
+        ).first()
+    )
+    if existing_report:
+        raise HTTPException(400, "You have already submitted a report for this station and category")
 
     db.add(
         StatusReport(
