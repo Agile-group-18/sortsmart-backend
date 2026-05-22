@@ -7,7 +7,7 @@ from .config import get_settings
 from .database import SessionLocal
 from .fetcher_station import fetch_all
 from .fetcher_item import fetch_all_items
-from .models.orm import Station, StationCategory, Category, SyncMeta, User, Item
+from .models.orm import Station, StationCategory, Category, StatusReport, SyncMeta, User, Item
 
 settings = get_settings()
 logger = logging.getLogger("sortsmart.scheduler")
@@ -200,6 +200,27 @@ async def clear_disabled_accounts(db: Session | None = None) -> None:
         if owns_session:
             db.close()
 
+async def clear_expired_reports(db: Session | None = None) -> None:
+    """Permanently delete status reports older than 3 days."""
+    owns_session = db is None
+    if owns_session:
+        db = SessionLocal()
+    try:
+        expire_limit = datetime.now(timezone.utc) - timedelta(days=3)
+        deleted = (
+            db.query(StatusReport)
+            .filter(StatusReport.reported_at < expire_limit)
+            .delete()
+        )
+        db.commit()
+        logger.info("Deleted %d expired status reports", deleted)
+    except Exception as exc:
+        logger.error("Failed to clear expired reports: %s", exc, exc_info=True)
+        if owns_session:
+            db.rollback()
+    finally:
+        if owns_session:
+            db.close()
 
 def get_next_run() -> datetime | None:
     return _next_run
@@ -229,6 +250,13 @@ def start() -> None:
         trigger=IntervalTrigger(days=90),
         id="clear_disabled_accounts",
         replace_existing=True,
+    )
+    scheduler.add_job(
+        clear_expired_reports,
+        trigger=IntervalTrigger(days=1), 
+        id="clear_expired_reports",
+        replace_existing=True,
+        next_run_time=datetime.now(timezone.utc),
     )
     scheduler.start()
     logger.info(
