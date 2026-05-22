@@ -44,13 +44,11 @@ def _category_statuses(db: Session, station_id: str) -> list[CategoryStatusRespo
         .filter(StationCategory.station_id == station_id)
         .all()
     )
-    expire_limit = datetime.now(timezone.utc)-timedelta(days=3)
     problem_cats = (
         db.query(StatusReport.category_id)
         .filter(
             StatusReport.station_id == station_id,
-            StatusReport.status.in_(["full", "not_working"]),
-            StatusReport.reported_at >= expire_limit
+            StatusReport.status.in_(["full", "not_working"])
         )
         .group_by(StatusReport.category_id)
         .having(func.count(StatusReport.id) >= 3)
