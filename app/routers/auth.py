@@ -27,7 +27,6 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("10/15minutes")
 def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
     return svc.login(db, body)
 
